@@ -401,6 +401,33 @@ function f(x: string|"选项1"|"选项2")
 ---
 
 #### x:
+  - `string`
+  - `"选项1"` — 注释1
+  - `"选项2"` (default) — 注释2]]
+}
+
+TEST {
+    {
+        path = 'a.lua',
+        content = '',
+    },
+    {
+        path = 'b.lua',
+        content = [[
+            ---@param x
+            ---|   "选项1" # 注释1
+            ---| > "选项2" # 注释2
+            function <?f?>(x) end
+        ]]
+    },
+    hover = [[
+```lua
+function f(x: "选项1"|"选项2")
+```
+
+---
+
+#### x:
   - `"选项1"` — 注释1
   - `"选项2"` (default) — 注释2]]
 }
@@ -693,6 +720,27 @@ comment2]]}
 TEST {{ path = 'a.lua', content = '', }, {
     path = 'b.lua',
     content = [[
+        ---@param a boolean|string # xxx
+        local function <?f?>(a)
+        end
+    ]]
+},
+    hover = [[
+```lua
+function f(a: boolean|string)
+```
+
+---
+
+@*param* `a` — xxx
+
+#### a:
+  - `boolean`
+  - `string`]]}
+
+TEST {{ path = 'a.lua', content = '', }, {
+    path = 'b.lua',
+    content = [[
         ---@param a boolean # xxx
         ---| true  # ttt
         ---| false # fff
@@ -710,6 +758,7 @@ function f(a: boolean)
 @*param* `a` — xxx
 
 #### a:
+  - `boolean`
   - `true` — ttt
   - `false` — fff]]}
 

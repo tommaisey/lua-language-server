@@ -212,11 +212,15 @@ local function lookUpDocComments(source)
     return table.concat(lines, '\n')
 end
 
-local function tryDocClassComment(source)
+local function tryDocClassComment(source, types)
+    types = types or {
+        ['doc.class'] = true,
+        ['doc.alias'] = true,
+        ['doc.enum'] = true,
+    }
+
     for _, def in ipairs(vm.getDefs(source)) do
-        if def.type == 'doc.class'
-        or def.type == 'doc.alias'
-        or def.type == 'doc.enum' then
+        if types[def.type] then
             local comment = getBindComment(def)
             if comment then
                 return comment
@@ -236,31 +240,50 @@ local function buildEnumChunk(docType, name, uri)
     if not docType then
         return nil
     end
+    local concreteType = {
+        ['doc.type.string'] = true,
+        ['doc.type.integer'] = true,
+        ['doc.type.number'] = true,
+        ['doc.type.boolean'] = true,
+    }
+    local enumLike = {
+        ['doc.enum'] = true,
+        ['doc.alias'] = true
+    }
+
     local enums = {}
     local types = {}
     local lines = {}
-    for _, tp in ipairs(vm.getDefs(docType)) do
+
+    for i, tp in ipairs(vm.getDefs(docType)) do
         types[#types+1] = vm.getInfer(tp):view(guide.getUri(docType))
-        if tp.type == 'doc.type.string'
-        or tp.type == 'doc.type.integer'
-        or tp.type == 'doc.type.boolean'
-        or tp.type == 'doc.type.code' then
-            enums[#enums+1] = tp
-        end
-        local comment = tryDocClassComment(tp)
-        if comment then
-            for line in util.eachLine(comment) do
-                lines[#lines+1] = line
+
+        local ty = tp.type
+
+        if i == 1 and not concreteType[ty] then
+            local comment = tryDocClassComment(tp)
+
+            if comment then
+                for line in util.eachLine(comment) do
+                    lines[#lines+1] = line
+                end
             end
         end
+
+        if not enumLike[ty] then
+            enums[#enums+1] = tp
+        end
     end
-    if #enums == 0 then
+
+    if #enums == 0 or (#enums == 1 and (enums[1].comment == nil or enums[1].comment == "")) then
         return nil
     end
+
     if #lines > 0 and lines[#lines] ~= "" then
         lines[#lines+1] = ""
     end
     lines[#lines+1] = ('#### %s:'):format(name)
+
     for _, enum in ipairs(enums) do
         local suffix = (enum.default and ' (default)')
             or (enum.additional and ' (additional)')
